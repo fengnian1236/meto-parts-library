@@ -259,8 +259,7 @@
 
   /* Edit mode on cards */
   .edit-on .part-card { padding-right: 36px; }
-  .edit-on .card-edit-actions { display: flex; }
-  .card-edit-actions { display: none; position: absolute; top: 8px; right: 8px; gap: 2px; flex-direction: column; }
+  .card-edit-actions { display: flex; position: absolute; top: 8px; right: 8px; gap: 2px; flex-direction: column; }
   .card-edit-actions button { font-size: 10px; padding: 2px 6px; border-radius: 3px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; }
   .card-edit-actions button:hover { color: var(--edit); border-color: var(--edit); }
   .card-edit-actions button.del:hover { color: #ef4444; border-color: #ef4444; }
@@ -1104,7 +1103,7 @@ function renderCenter() {
         '<div class="card-name">' + esc(rel.name) + ' <span class="region-tag ' + relRegionClass + '">' + esc(rel.region) + '</span></div>' +
         '<div class="card-desc">' + esc(rel.stages.middle) + '</div>' +
         '<div class="card-tags">' + rel.tags.map(function(t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
-        (editMode ? '<div class="card-edit-actions"><button onclick="event.stopPropagation();editPart(\'' + curCategory + '\',\'' + rel.id + '\')">✎</button><button class="del" onclick="event.stopPropagation();delPart(\'' + curCategory + '\',\'' + rel.id + '\')">✕</button></div>' : '') +
+        '<div class="card-edit-actions"><button onclick="event.stopPropagation();editPart(\'' + curCategory + '\',\'' + rel.id + '\')">✎</button><button class="del" onclick="event.stopPropagation();delPart(\'' + curCategory + '\',\'' + rel.id + '\')">✕</button></div>' +
         '</div>';
     }).join('') +
     '<div class="part-card-add" onclick="openAddModal(\'' + curCategory + '\', \'' + (relatedItemsOther[0] ? relatedItemsOther[0].region : '中东南亚') + '\')" title="添加新钩子方案">+</div>' +
@@ -1137,7 +1136,7 @@ function renderCenter() {
           '<div class="card-tags">' +
             '<span class="tag" style="color:#3b82f6;border-color:#3b82f6;">前:' + esc(rel.stages.before3s.substring(0,20)) + '…</span>' +
           '</div>' +
-          (editMode ? '<div class="card-edit-actions"><button onclick="event.stopPropagation();editPart(\'' + curCategory + '\',\'' + rel.id + '\')">✎</button><button class="del" onclick="event.stopPropagation();delPart(\'' + curCategory + '\',\'' + rel.id + '\')">✕</button></div>' : '') +
+          '<div class="card-edit-actions"><button onclick="event.stopPropagation();editPart(\'' + curCategory + '\',\'' + rel.id + '\')">✎</button><button class="del" onclick="event.stopPropagation();delPart(\'' + curCategory + '\',\'' + rel.id + '\')">✕</button></div>' +
           '</div>';
       }).join('') +
     '<div class="part-card-add" onclick="openAddModal(\'' + curCategory + '\', \'' + hookRegion + '\')" title="添加新钩子方案">+</div>' +
