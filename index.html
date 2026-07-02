@@ -1072,11 +1072,11 @@ function renderCenter() {
   const catData = DATA[curCategory];
   if (!catData) return;
 
-  // Build tabs (each item is a tab)
+  // Build tabs (each item is a tab) + add button
   const tabsHTML = catData.items.map(function(item) {
     const isActive = item.id === curHookId;
     return '<div class="layer-tab' + (isActive ? ' active' : '') + '" style="--lc:' + catData.color + '" onclick="openHook(\'' + curCategory + '\',\'' + item.id + '\')">' + escHtml(item.name) + ' <span class="region-tag ' + (item.region === '欧美' ? 'eu' : 'sea') + '" style="font-size:8px;padding:1px 4px;">' + escHtml(item.region) + '</span></div>';
-  }).join('');
+  }).join('') + '<div class="layer-tab" style="--lc:' + catData.color + ';opacity:.7;border-style:dashed;" onclick="openAddModal(\'' + curCategory + '\', \'欧美\')" title="新增钩子方案">+</div>';
 
   // Get current hook item
   const hookItem = curHookId ? catData.items.find(function(x) { return x.id === curHookId; }) : catData.items[0];
