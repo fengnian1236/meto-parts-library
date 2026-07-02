@@ -1571,10 +1571,22 @@ function renderYT() {
   var dateStart = (document.getElementById('yt-date-start') || {}).value || '';
   var dateEnd = (document.getElementById('yt-date-end') || {}).value || '';
   var list = YT_DATA[currentSection] || [];
+  // Helper: normalize date to YYYY-MM-DD for comparison
+  function normDate(d) {
+    if (!d) return '';
+    // Handle 2026.6.30 or 2026.06.30 format
+    var m = String(d).match(/^(\d{4})\.(\d{1,2})\.(\d{1,2})$/);
+    if (m) {
+      return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+    }
+    // Already YYYY-MM-DD
+    return String(d);
+  }
   var items = list.filter(function(it) {
     if (filter !== '全部' && it.region !== filter) return false;
-    if (dateStart && it.date && it.date < dateStart) return false;
-    if (dateEnd && it.date && it.date > dateEnd) return false;
+    var itDateNorm = normDate(it.date);
+    if (dateStart && itDateNorm && itDateNorm < dateStart) return false;
+    if (dateEnd && itDateNorm && itDateNorm > dateEnd) return false;
     if (search) {
       var n = (it.name || '').toLowerCase();
       var u = (it.url || '').toLowerCase();
