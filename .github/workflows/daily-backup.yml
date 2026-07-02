@@ -1,0 +1,78 @@
+name: Daily Backup to GitHub
+
+on:
+  schedule:
+    # 每天凌晨 3:00 UTC+8 (即 19:00 UTC)
+    - cron: '0 19 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Create backup directory
+      run: mkdir -p backup
+      
+    - name: Download data from JSONBin
+      env:
+        PARTS_BIN_ID: ${{ secrets.PARTS_BIN_ID }}
+        PARTS_MASTER_KEY: ${{ secrets.PARTS_MASTER_KEY }}
+        YT_BIN_ID: ${{ secrets.YT_BIN_ID }}
+        YT_MASTER_KEY: ${{ secrets.YT_MASTER_KEY }}
+      run: |
+        DATE=$(date +%Y-%m-%d)
+        
+        # 备份零件数据
+        if [ -n "$PARTS_BIN_ID" ] && [ -n "$PARTS_MASTER_KEY" ]; then
+          echo "Backing up parts data..."
+          curl -s -H "X-Master-Key: $PARTS_MASTER_KEY" \
+               -H "X-Bin-Meta: false" \
+               "https://api.jsonbin.io/v3/b/$PARTS_BIN_ID/latest" \
+               > "backup/parts-${DATE}.json"
+          echo "Parts backup saved: backup/parts-${DATE}.json"
+        else
+          echo "Parts bin credentials not configured, skipping..."
+        fi
+        
+        # 备份 YT 素材数据
+        if [ -n "$YT_BIN_ID" ] && [ -n "$YT_MASTER_KEY" ]; then
+          echo "Backing up YT data..."
+          curl -s -H "X-Master-Key: $YT_MASTER_KEY" \
+               -H "X-Bin-Meta: false" \
+               "https://api.jsonbin.io/v3/b/$YT_BIN_ID/latest" \
+               > "backup/yt-${DATE}.json"
+          echo "YT backup saved: backup/yt-${DATE}.json"
+        else
+          echo "YT bin credentials not configured, skipping..."
+        fi
+        
+    - name: Check backup files
+      run: |
+        echo "Backup files created:"
+        ls -la backup/
+        
+    - name: Commit and push backup
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        
+        git add backup/
+        
+        # 只有在有变更时才提交
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          DATE=$(date +%Y-%m-%d)
+          git commit -m "backup: ${DATE} daily backup from JSONBin"
+          git push
+          echo "Backup committed and pushed"
+        fi
