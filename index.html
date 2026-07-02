@@ -1094,6 +1094,24 @@ function saveData() {
   saveDataToCloud(DATA); // 异步云同步，不阻塞
 }
 
+// 重置数据到默认状态
+function resetData() {
+  if (!confirm('确定要重置所有数据到默认状态吗？这将清除本地所有修改。')) return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(YT_STORAGE_KEY);
+    DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    YT_DATA = { ios: [], and: [] };
+    curCategory = 'grass';
+    curHookId = null;
+    selected = [];
+    alert('数据已重置，页面将刷新');
+    location.reload();
+  } catch(e) {
+    alert('重置失败: ' + e.message);
+  }
+}
+
 function loadYT() {
   try {
     const s = localStorage.getItem(YT_STORAGE_KEY);
@@ -1218,8 +1236,22 @@ function renderCenter() {
   if (!center) return;
   if (curCategory === 'history') { renderHistory(); return; }
 
+  // 确保 DATA 已加载
+  if (!DATA || typeof DATA !== 'object') {
+    center.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">数据加载失败，请刷新页面重试</div>';
+    return;
+  }
+
   const catData = DATA[curCategory];
-  if (!catData) return;
+  if (!catData) {
+    center.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">分类不存在: ' + escHtml(curCategory) + '<br><button class="btn" onclick="resetData()" style="margin-top:16px">重置数据</button></div>';
+    return;
+  }
+  
+  // 确保 items 存在
+  if (!catData.items || !Array.isArray(catData.items)) {
+    catData.items = [];
+  }
 
   // Build tabs (each item is a tab) + add button
   const tabsHTML = catData.items.map(function(item) {
@@ -1229,7 +1261,10 @@ function renderCenter() {
 
   // Get current hook item
   const hookItem = curHookId ? catData.items.find(function(x) { return x.id === curHookId; }) : catData.items[0];
-  if (!hookItem) return;
+  if (!hookItem) {
+    center.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">该分类下暂无素材<br><button class="btn" onclick="openAddModal(\'' + curCategory + '\', \'欧美\')" style="margin-top:16px">+ 添加第一个素材</button></div>';
+    return;
+  }
 
   const color = catData.color;
   const regionClass = hookItem.region === '欧美' ? 'eu' : 'sea';
@@ -1254,7 +1289,7 @@ function renderCenter() {
   const relatedItems = catData.items.filter(function(x) { return x.id !== hookItem.id && x.region === hookRegion; });
   const relatedItemsOther = catData.items.filter(function(x) { return x.id !== hookItem.id && x.region !== hookRegion; });
 
-  const esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+  // 使用全局 escHtml 函数
 
   let editActions = '';
   if (editMode) {
@@ -1275,9 +1310,9 @@ function renderCenter() {
         'onclick="toggleHookItem(\'' + curCategory + '\',\'' + rel.id + '\', \'' + relColor + '\')">' +
         '<div class="card-check">✓</div>' +
         '<div class="card-id">' + rel.id + '</div>' +
-        '<div class="card-name">' + esc(rel.name) + ' <span class="region-tag ' + relRegionClass + '">' + esc(rel.region) + '</span></div>' +
-        '<div class="card-desc">' + esc(rel.stages.middle) + '</div>' +
-        '<div class="card-tags">' + rel.tags.map(function(t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
+        '<div class="card-name">' + escHtml(rel.name) + ' <span class="region-tag ' + relRegionClass + '">' + escHtml(rel.region) + '</span></div>' +
+        '<div class="card-desc">' + escHtml(rel.stages.middle) + '</div>' +
+        '<div class="card-tags">' + rel.tags.map(function(t) { return '<span class="tag">' + escHtml(t) + '</span>'; }).join('') + '</div>' +
         '<div class="card-edit-actions"><button onclick="event.stopPropagation();editPart(\'' + curCategory + '\',\'' + rel.id + '\')">✎</button><button class="del" onclick="event.stopPropagation();delPart(\'' + curCategory + '\',\'' + rel.id + '\')">✕</button></div>' +
         '</div>';
     }).join('') +
@@ -1285,12 +1320,12 @@ function renderCenter() {
     '</div>';
 
   center.innerHTML = '<div style="color:' + color + '" class="section-title">' + catData.label + '</div>' +
-    '<div class="section-desc">' + esc(catData.desc) + '</div>' +
+    '<div class="section-desc">' + escHtml(catData.desc) + '</div>' +
     '<div class="layer-tabs">' + tabsHTML + '</div>' +
     '<div class="stage-header">' +
-      '<div class="stage-title">' + esc(hookItem.name) + '</div>' +
-      '<span class="region-badge ' + regionClass + '">' + esc(hookItem.region) + '</span>' +
-      '<span class="tag pot" style="margin-left:4px;">' + esc(hookItem.pot) + '</span>' +
+      '<div class="stage-title">' + escHtml(hookItem.name) + '</div>' +
+      '<span class="region-badge ' + regionClass + '">' + escHtml(hookItem.region) + '</span>' +
+      '<span class="tag pot" style="margin-left:4px;">' + escHtml(hookItem.pot) + '</span>' +
     '</div>' +
     '<div class="stage-cards">' + stageCardsHTML + '</div>' +
     '<div class="card-tags" style="margin-bottom:16px;">' + tagsHTML + potHTML + '</div>' +
@@ -1306,10 +1341,10 @@ function renderCenter() {
           'onclick="toggleHookItem(\'' + curCategory + '\',\'' + rel.id + '\', \'' + relColor + '\')">' +
           '<div class="card-check">✓</div>' +
           '<div class="card-id">' + rel.id + '</div>' +
-          '<div class="card-name">' + esc(rel.name) + ' <span class="region-tag ' + relRegionClass + '">' + esc(rel.region) + '</span></div>' +
-          '<div class="card-desc">' + esc(rel.stages.before3s) + '</div>' +
+          '<div class="card-name">' + escHtml(rel.name) + ' <span class="region-tag ' + relRegionClass + '">' + escHtml(rel.region) + '</span></div>' +
+          '<div class="card-desc">' + escHtml(rel.stages.before3s) + '</div>' +
           '<div class="card-tags">' +
-            '<span class="tag" style="color:#3b82f6;border-color:#3b82f6;">前:' + esc(rel.stages.before3s.substring(0,20)) + '…</span>' +
+            '<span class="tag" style="color:#3b82f6;border-color:#3b82f6;">前:' + escHtml(rel.stages.before3s.substring(0,20)) + '…</span>' +
           '</div>' +
           '<div class="card-edit-actions"><button onclick="event.stopPropagation();editPart(\'' + curCategory + '\',\'' + rel.id + '\')">✎</button><button class="del" onclick="event.stopPropagation();delPart(\'' + curCategory + '\',\'' + rel.id + '\')">✕</button></div>' +
           '</div>';
