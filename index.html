@@ -424,6 +424,17 @@
   .toolbar-btn-add:hover { background: #3b5ed7 !important; }
   .toolbar-btn-batch { background: #10b981 !important; color: white !important; }
   .toolbar-btn-batch:hover { background: #059669 !important; }
+  /* 顶部单条新增表单 */
+  .yt-add-inline-top { display: flex; gap: 8px; align-items: center; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; }
+  .yt-add-inline-top input, .yt-add-inline-top select { padding: 6px 10px; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; }
+  .yt-add-inline-top input:focus, .yt-add-inline-top select:focus { outline: none; border-color: #4f6ef7; }
+  .yt-add-inline-top input#yt-add-name-top { width: 160px; }
+  .yt-add-inline-top input#yt-add-date-top { width: 120px; }
+  .yt-add-inline-top select#yt-add-region-top { width: 80px; }
+  .yt-add-inline-top input#yt-add-url-top { flex: 1; min-width: 180px; }
+  .yt-add-inline-top input#yt-add-tags-top { width: 120px; }
+  .yt-add-inline-top button { padding: 6px 14px; background: #4f6ef7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .yt-add-inline-top button:hover { opacity: .85; }
 
   /* ===== MODAL ===== */
   .yt-modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -618,9 +629,21 @@
         <span class="date-sep">→</span>
         <input type="date" id="yt-date-end" onchange="renderYT()" title="结束日期" />
         <button class="toolbar-btn-icon" onclick="clearDateFilter()" title="清除日期筛选">✕</button>
-        <button class="toolbar-btn-add" onclick="openAddYTModal()" title="添加素材">➕</button>
-        <button class="toolbar-btn-batch" onclick="openBatchYTModal()" title="批量新增">📋</button>
         <span class="count" id="yt-count"></span>
+      </div>
+      <!-- 顶部单条新增表单 -->
+      <div class="yt-add-inline-top">
+        <input type="text" id="yt-add-name-top" placeholder="素材名称 (如 V1755宣传片)" />
+        <input type="text" id="yt-add-date-top" placeholder="日期 (如 2026.6.30)" />
+        <select id="yt-add-region-top">
+          <option value="欧美">欧美</option>
+          <option value="亚洲">亚洲</option>
+          <option value="中东">中东</option>
+          <option value="印度">印度</option>
+        </select>
+        <input type="text" id="yt-add-url-top" placeholder="素材链接" />
+        <input type="text" id="yt-add-tags-top" placeholder="标签 (逗号分隔)" />
+        <button onclick="saveInlineTop()">➕ 保存</button>
       </div>
       <div id="ytBody"></div>
     </div>
@@ -1542,6 +1565,27 @@ function saveInline(regionKey) {
   YT_DATA[currentSection].sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
   saveYT(); renderYT();
 }
+function saveInlineTop() {
+  var nE = document.getElementById('yt-add-name-top');
+  var dE = document.getElementById('yt-add-date-top');
+  var rE = document.getElementById('yt-add-region-top');
+  var uE = document.getElementById('yt-add-url-top');
+  var tE = document.getElementById('yt-add-tags-top');
+  var name = nE ? nE.value.trim() : '';
+  var d = dE ? dE.value.trim() : '';
+  var region = rE ? rE.value : '欧美';
+  var u = uE ? uE.value.trim() : '';
+  var ts = tE ? tE.value.trim() : '';
+  if (!u) { alert('请输入素材链接'); if (uE) uE.focus(); return; }
+  var tags = ts ? ts.split(/[,，\uff0c]/).map(function(s){return s.trim();}).filter(Boolean) : [];
+  YT_DATA[currentSection].push({ date: d || todayStr(), region: region, name: name, url: u, tags: tags });
+  YT_DATA[currentSection].sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  saveYT(); renderYT();
+  // Clear inputs after save
+  if (nE) nE.value = '';
+  if (uE) uE.value = '';
+  if (tE) tE.value = '';
+}
 function saveBatch(regionKey) {
   var list = []; var today = todayStr();
   for (var i = 1; i <= 10; i++) {
@@ -1654,33 +1698,6 @@ function renderYT() {
       });
     });
     html += '</tbody></table>';
-
-    html += '<div class="add-row">';
-    html += '<input type="text" id="yt-add-name-' + rg + '" placeholder="素材名称 (如 V1755宣传片)" style="width:160px" />';
-    html += '<input type="text" id="yt-add-date-' + rg + '" placeholder="日期 (如 2026.6.30)" value="' + todayStr() + '" style="width:120px" />';
-    html += '<input type="text" id="yt-add-url-' + rg + '" placeholder="素材链接" style="flex:1;min-width:180px" />';
-    html += '<input type="text" id="yt-add-tags-' + rg + '" placeholder="标签 (逗号分隔)" style="width:110px" />';
-    html += '<button onclick="saveInline(\'' + rg + '\')">保存</button>';
-    html += '</div>';
-
-    html += '<div class="batch-trigger" onclick="toggleBatch(\'' + rg + '\')">+ 批量新增 10 条素材</div>';
-    html += '<div class="batch-form" id="yt-batch-' + rg + '" style="display:none">';
-    html += '<div class="batch-hint">⚠ 留空的行不会保存。地区默认「' + rg + '」，日期默认今天。</div>';
-    html += '<div class="batch-col-labels"><span>#</span><span>名称</span><span>地区</span><span>链接</span><span>标签</span></div>';
-    for (var i = 1; i <= 10; i++) {
-      html += '<div class="batch-row">';
-      html += '<span class="num">' + i + '.</span>';
-      html += '<input type="text" id="yt-batch-name-' + rg + '-' + i + '" placeholder="名称" />';
-      html += '<select id="yt-batch-region-' + rg + '-' + i + '"><option value="' + rg + '">' + rg + '</option><option value="">—</option><option value="欧美">欧美</option><option value="亚洲">亚洲</option><option value="中东">中东</option><option value="印度">印度</option></select>';
-      html += '<input type="text" class="url" id="yt-batch-url-' + rg + '-' + i + '" placeholder="https://..." />';
-      html += '<input type="text" class="tags" id="yt-batch-tags-' + rg + '-' + i + '" placeholder="标签" />';
-      html += '</div>';
-    }
-    html += '<div class="batch-actions">';
-    html += '<button class="save" onclick="saveBatch(\'' + rg + '\')">💾 一键保存全部 (10 条)</button>';
-    html += '<button class="cancel" onclick="toggleBatch(\'' + rg + '\')">取消</button>';
-    html += '</div></div>';
-
     html += '</div>';
   });
   body.innerHTML = html;
