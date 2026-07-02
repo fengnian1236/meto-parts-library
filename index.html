@@ -435,6 +435,8 @@
   .yt-add-inline-top input#yt-add-tags-top { width: 120px; }
   .yt-add-inline-top button { padding: 6px 14px; background: #4f6ef7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; white-space: nowrap; }
   .yt-add-inline-top button:hover { opacity: .85; }
+  .yt-add-inline-top button.batch-btn { background: #10b981; }
+  .yt-add-inline-top button.batch-btn:hover { background: #059669; }
 
   /* ===== MODAL ===== */
   .yt-modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -644,6 +646,7 @@
         <input type="text" id="yt-add-url-top" placeholder="素材链接" />
         <input type="text" id="yt-add-tags-top" placeholder="标签 (逗号分隔)" />
         <button onclick="saveInlineTop()">➕ 保存</button>
+        <button class="batch-btn" onclick="openBatchYTModal()">📋 批量新增</button>
       </div>
       <div id="ytBody"></div>
     </div>
