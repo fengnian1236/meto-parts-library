@@ -1,689 +1,3 @@
-﻿﻿<!DOCTYPE html>
-<html lang="zh">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meto 素材零件库</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap');
-
-  /* Light theme (default) */
-  :root {
-    --bg: #f5f5f7; --surface: #ffffff; --card: #ffffff;
-    --border: #d0d0d8; --text: #18181b; --muted: #52525b;
-    --tag: #e8e8ee; --edit: #f97316;
-    --grass: #ec4899; --live: #f97316; --onv1: #8b5cf6; --match: #3b82f6; --realshow: #10b981; --story: #ef4444; --native: #06b6d4;
-  }
-  /* BW / dark theme */
-  [data-theme="bw"] {
-    --bg: #0a0a0f; --surface: #111118; --card: #16161f;
-    --border: #232334; --text: #e8e8f0; --muted: #6b6b80;
-    --tag: #1e1e30;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans SC', sans-serif; font-size: 13px; line-height: 1.6; min-height: 100vh; }
-
-  .header {
-    border-bottom: 1px solid var(--border); padding: 0 28px; height: 52px;
-    display: flex; align-items: center; gap: 16px;
-    background: var(--surface); position: sticky; top: 0; z-index: 100;
-  }
-  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: -0.5px; color: #4f6ef7; }
-  .logo span { color: var(--text); }
-  .header-sub { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); border-left: 1px solid var(--border); padding-left: 14px; }
-
-  .section-tabs { display: flex; gap: 4px; }
-  .section-tab { padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; color: var(--muted); border: 1px solid transparent; transition: all .15s; }
-  .section-tab:hover { color: var(--text); }
-  .section-tab.active { color: #4f6ef7; background: rgba(79, 110, 247, .1); border-color: #4f6ef7; }
-
-  .header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-
-  .theme-switch { display: flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-right: 4px; }
-  .theme-btn { font-family: 'DM Mono', monospace; font-size: 11px; padding: 6px 10px; border: none; background: transparent; color: var(--muted); cursor: pointer; }
-  .theme-btn.active { background: #4f6ef7; color: white; }
-
-  .btn { font-family: 'DM Mono', monospace; font-size: 11px; padding: 6px 14px; border-radius: 4px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; transition: all .15s; white-space: nowrap; }
-  .btn:hover { color: var(--text); border-color: #4f6ef7; }
-  .btn.primary { background: #4f6ef7; border-color: #4f6ef7; color: white; }
-  .btn.primary:hover { opacity: .85; }
-  .btn.edit-mode.active { background: var(--edit); color: white; border-color: var(--edit); }
-  .btn.undo:disabled { opacity: .3; cursor: not-allowed; }
-
-  /* ===== CREATIVE 3-COLUMN LAYOUT ===== */
-  .layout { display: grid; grid-template-columns: 240px 1fr 290px; height: calc(100vh - 52px); overflow: hidden; }
-
-  /* LEFT PANEL */
-  .left-panel { border-right: 1px solid var(--border); overflow-y: auto; padding: 16px 0; background: var(--surface); }
-  .panel-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1.5px; padding: 0 18px 8px; text-transform: uppercase; }
-
-  .nav-category { margin-bottom: 4px; }
-  .nav-root {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 18px; font-weight: 700; font-size: 12px;
-    cursor: pointer; border-left: 3px solid transparent; transition: all .15s;
-    color: var(--text); user-select: none;
-  }
-  .nav-root:hover { background: rgba(0,0,0,.04); }
-  [data-theme="bw"] .nav-root:hover { background: rgba(255,255,255,.03); }
-  .nav-root.active { border-left-color: var(--lc); color: var(--lc); background: rgba(79,110,247,.05); }
-  .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .nav-arrow { margin-left: auto; font-size: 10px; color: var(--muted); transition: transform .2s; }
-  .nav-arrow.open { transform: rotate(90deg); }
-
-  .nav-children { padding-left: 28px; display: none; }
-  .nav-children.open { display: block; }
-  .nav-child {
-    display: flex; align-items: center; gap: 6px;
-    padding: 5px 14px 5px 12px; font-size: 11px; color: var(--muted);
-    cursor: pointer; border-left: 2px solid var(--border); margin-left: 4px; transition: all .12s;
-  }
-  .nav-child:hover { color: var(--text); }
-  .nav-child.active { font-weight: 600; }
-  .nav-count { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--tag); color: var(--muted); }
-
-  .region-tag {
-    font-family: 'DM Mono', monospace; font-size: 8px; padding: 1px 5px;
-    border-radius: 3px; color: white; flex-shrink: 0;
-  }
-  .region-tag.eu { background: #4f6ef7; }
-  .region-tag.sea { background: #f59e0b; }
-
-  .nav-special {
-    display: flex; align-items: center; gap: 8px;
-    padding: 9px 18px; font-size: 11px; font-weight: 700;
-    cursor: pointer; color: var(--muted); border-left: 3px solid transparent; transition: all .15s; margin-top: 6px;
-  }
-  .nav-special:hover, .nav-special.active { color: #f87171; border-left-color: #ef4444; background: rgba(239,68,68,.05); }
-
-  /* + 号: 一级标签新增 / 卡片新增 / stage 卡片编辑 */
-  .nav-add {
-    margin-left: auto; margin-right: 4px; width: 18px; height: 18px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 4px; font-size: 14px; font-weight: 700; line-height: 1;
-    color: var(--muted); background: var(--card); border: 1px dashed var(--border);
-    cursor: pointer; opacity: 0; transition: all .15s;
-  }
-  .nav-root:hover .nav-add { opacity: 1; }
-  .nav-add:hover { color: var(--lc); border-color: var(--lc); background: color-mix(in srgb, var(--lc) 10%, var(--card)); }
-
-  .part-card-add {
-    background: transparent; border: 1.5px dashed var(--border); border-radius: 8px;
-    padding: 13px; cursor: pointer; transition: all .15s;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--muted); font-size: 20px; font-weight: 300; min-height: 80px;
-  }
-  .part-card-add:hover { border-color: var(--lc); color: var(--lc); background: color-mix(in srgb, var(--lc) 4%, transparent); }
-
-  .stage-card { position: relative; }
-  .stage-card-edit { position: absolute; top: 4px; right: 4px; display: flex; gap: 2px; }
-  .stage-card-edit button { font-size: 9px; padding: 1px 5px; border-radius: 3px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; }
-
-  /* ===== Modal 弹框 ===== */
-  .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,.45);
-    display: none; align-items: center; justify-content: center; z-index: 9999;
-    backdrop-filter: blur(2px);
-  }
-  .modal-overlay.show { display: flex; }
-  .modal-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-    width: 520px; max-width: 92vw; max-height: 88vh; overflow: auto;
-    box-shadow: 0 20px 60px rgba(0,0,0,.4); display: flex; flex-direction: column;
-  }
-  .modal-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 20px; border-bottom: 1px solid var(--border);
-  }
-  .modal-title { font-size: 15px; font-weight: 700; color: var(--text); }
-  .modal-close {
-    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
-    background: var(--card); color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1;
-  }
-  .modal-close:hover { color: #ef4444; border-color: #ef4444; }
-  .modal-body { padding: 16px 20px; }
-  .form-row { margin-bottom: 14px; }
-  .form-row label {
-    display: block; font-size: 12px; font-weight: 600; color: var(--muted);
-    margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em;
-  }
-  .form-row label .required { color: #ef4444; margin-left: 2px; }
-  .form-row input[type=text], .form-row textarea, .form-row select {
-    width: 100%; padding: 8px 10px; font-size: 13px; font-family: inherit;
-    background: var(--bg); color: var(--text);
-    border: 1px solid var(--border); border-radius: 6px; outline: none;
-    box-sizing: border-box; resize: vertical;
-  }
-  .form-row input[type=text]:focus, .form-row textarea:focus { border-color: var(--lc); }
-  .form-row textarea { min-height: 56px; }
-  .radio-group { display: flex; gap: 16px; }
-  .radio-group label {
-    display: flex; align-items: center; gap: 6px; cursor: pointer;
-    color: var(--text); font-size: 13px; text-transform: none; letter-spacing: 0; font-weight: 400; margin-bottom: 0;
-  }
-  .radio-group input[type=radio] { accent-color: var(--lc); cursor: pointer; }
-  .tag-input-wrapper {
-    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
-    padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; min-height: 36px;
-  }
-  .tag-chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 8px; font-size: 11px; border-radius: 4px;
-    background: color-mix(in srgb, var(--lc) 15%, transparent); color: var(--lc); border: 1px solid var(--lc);
-  }
-  .tag-chip .x { cursor: pointer; opacity: .6; font-weight: 700; }
-  .tag-chip .x:hover { opacity: 1; color: #ef4444; }
-  .tag-input-wrapper input {
-    flex: 1; min-width: 100px; border: none; background: transparent; outline: none;
-    font-size: 12px; color: var(--text); padding: 2px 4px;
-  }
-  .modal-footer {
-    display: flex; gap: 10px; justify-content: flex-end;
-    padding: 12px 20px; border-top: 1px solid var(--border);
-  }
-  .modal-footer .btn { font-size: 12px; padding: 7px 16px; }
-  .stage-card-edit button:hover { color: var(--edit); border-color: var(--edit); }
-
-  /* CENTER PANEL */
-  .center-panel { overflow-y: auto; padding: 24px 28px; }
-
-  .section-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
-  .section-desc { font-size: 11px; color: var(--muted); margin-bottom: 20px; }
-
-  .layer-tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
-  .layer-tab {
-    font-family: 'DM Mono', monospace; font-size: 10px; padding: 5px 12px;
-    border-radius: 4px; border: 1px solid var(--border); background: var(--card);
-    color: var(--muted); cursor: pointer; transition: all .15s; white-space: nowrap;
-  }
-  .layer-tab:hover { color: var(--text); }
-  .layer-tab.active { color: var(--lc); border-color: var(--lc); background: color-mix(in srgb, var(--lc) 12%, transparent); }
-
-  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); gap: 9px; }
-
-  /* STAGE CARDS (new mindmap style) */
-  .stage-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-  .stage-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
-  .region-badge {
-    font-family: 'DM Mono', monospace; font-size: 10px; padding: 2px 8px;
-    border-radius: 3px; color: white;
-  }
-  .region-badge.eu { background: #4f6ef7; }
-  .region-badge.sea { background: #f59e0b; }
-
-  .stage-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
-  .stage-card {
-    background: var(--card); border: 1.5px solid var(--border); border-radius: 8px;
-    padding: 14px; position: relative; overflow: hidden;
-  }
-  .stage-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-  .stage-card.before3s::before { background: #3b82f6; }
-  .stage-card.middle::before { background: #a855f7; }
-  .stage-card.cta::before { background: #f97316; }
-
-  .stage-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
-  .stage-label.before3s { color: #3b82f6; }
-  .stage-label.middle { color: #a855f7; }
-  .stage-label.cta { color: #f97316; }
-
-  .stage-desc { font-size: 11px; color: var(--muted); line-height: 1.6; min-height: 60px; }
-
-  .section-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
-
-  .related-title { font-size: 12px; font-weight: 700; margin-bottom: 10px; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
-  .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
-
-  .part-card {
-    background: var(--card); border: 1.5px solid var(--border); border-radius: 8px;
-    padding: 13px; cursor: pointer; transition: all .15s; position: relative; overflow: hidden;
-  }
-  .part-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--lc); opacity: 0; transition: opacity .15s; }
-  .part-card:hover { border-color: var(--lc); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.15); }
-  [data-theme="bw"] .part-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.3); }
-  .part-card:hover::before { opacity: 1; }
-  .part-card.selected { border-color: var(--lc); background: color-mix(in srgb, var(--lc) 8%, var(--card)); }
-  .part-card.selected::before { opacity: 1; }
-
-  .card-check { position: absolute; top: 9px; right: 9px; width: 15px; height: 15px; border-radius: 50%; background: var(--lc); display: none; align-items: center; justify-content: center; font-size: 8px; color: white; }
-  .part-card.selected .card-check { display: flex; }
-
-  .card-id { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--lc); letter-spacing: 1px; margin-bottom: 5px; }
-  .card-name { font-size: 12px; font-weight: 700; margin-bottom: 5px; line-height: 1.3; padding-right: 18px; }
-  .card-desc { font-size: 10px; color: var(--muted); line-height: 1.5; }
-  .card-tags { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--border); display: flex; gap: 3px; flex-wrap: wrap; align-items: center; }
-  .tag { font-family: 'DM Mono', monospace; font-size: 9px; padding: 1px 6px; border-radius: 10px; background: var(--tag); color: var(--muted); border: 1px solid var(--border); }
-  .tag.hot { background: rgba(239,68,68,.1); color: #f87171; border-color: rgba(239,68,68,.2); }
-  .tag.new { background: rgba(16,185,129,.1); color: #34d399; border-color: rgba(16,185,129,.2); }
-  .tag.pot { background: rgba(79,110,247,.1); color: #818cf8; border-color: rgba(79,110,247,.2); margin-left: auto; }
-
-  /* Edit mode on cards */
-  .edit-on .part-card { padding-right: 36px; }
-  .edit-on .card-edit-actions { display: flex; }
-  .card-edit-actions { display: none; position: absolute; top: 8px; right: 8px; gap: 2px; flex-direction: column; }
-  .card-edit-actions button { font-size: 10px; padding: 2px 6px; border-radius: 3px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; }
-  .card-edit-actions button:hover { color: var(--edit); border-color: var(--edit); }
-  .card-edit-actions button.del:hover { color: #ef4444; border-color: #ef4444; }
-
-  /* HISTORY combos in center */
-  .combo-list { display: flex; flex-direction: column; gap: 10px; }
-  .combo-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; transition: all .15s; }
-  .combo-card:hover { border-color: #4f6ef7; }
-  .combo-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .combo-tag { font-family: 'DM Mono', monospace; font-size: 10px; color: #4f6ef7; }
-  .combo-name { font-size: 13px; font-weight: 700; }
-  .combo-vol { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 10px; color: #818cf8; }
-  .combo-formula { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-bottom: 8px; }
-  .cf-part { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 4px; }
-  .cf-plus { color: var(--muted); font-size: 11px; }
-  .combo-note { font-size: 11px; color: var(--muted); }
-  .combo-load { margin-top: 10px; font-family: 'DM Mono', monospace; font-size: 10px; color: #4f6ef7; cursor: pointer; display: inline-block; }
-  .combo-load:hover { text-decoration: underline; }
-  .combo-card-actions { display: none; gap: 4px; margin-top: 8px; }
-  .combo-card:hover .combo-card-actions { display: flex; }
-  .combo-btn { font-size: 10px; padding: 3px 9px; border-radius: 4px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; font-family: 'DM Mono', monospace; }
-  .combo-btn:hover { border-color: #4f6ef7; color: #4f6ef7; }
-  .combo-btn.del:hover { border-color: #ef4444; color: #ef4444; }
-  .history-add-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 5px 12px; border-radius: 6px; border: 1px dashed #4f6ef7; color: #4f6ef7; cursor: pointer; background: rgba(79,110,247,.06); transition: all .15s; margin-bottom: 12px; }
-  .history-add-btn:hover { background: rgba(79,110,247,.12); }
-  .color-swatches { display: flex; gap: 6px; flex-wrap: wrap; }
-  .color-swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all .15s; }
-  .color-swatch:hover { transform: scale(1.15); }
-  .color-swatch.selected { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
-  .part-picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 8px; background: var(--bg); }
-  .part-picker-item { display: flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 4px; border: 1px solid var(--border); background: var(--card); cursor: pointer; font-size: 11px; transition: all .1s; }
-  .part-picker-item:hover { border-color: #4f6ef7; }
-  .part-picker-item.sel { border-color: #4f6ef7; background: rgba(79,110,247,.1); }
-  .part-picker-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .part-picker-selected { display: flex; flex-wrap: wrap; gap: 5px; min-height: 34px; border: 1px solid var(--border); border-radius: 6px; padding: 6px; background: var(--bg); margin-top: 6px; align-items: center; }
-  .part-picker-selected .chip { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; padding: 3px 8px; border-radius: 4px; font-family: 'DM Mono', monospace; }
-  .part-picker-selected .chip span { cursor: pointer; color: var(--muted); }
-  .part-picker-selected .chip span:hover { color: #ef4444; }
-  .part-picker-hint { font-size: 10px; color: var(--muted); padding: 2px; }
-
-  /* RIGHT PANEL */
-  .right-panel { border-left: 1px solid var(--border); overflow-y: auto; background: var(--surface); display: flex; flex-direction: column; }
-  .right-top { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-  .right-top-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-  .count-badge { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 700; color: #4f6ef7; }
-
-  .right-body { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
-
-  .selected-list { display: flex; flex-direction: column; gap: 5px; }
-  .sel-item { padding: 9px 11px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: flex-start; gap: 7px; }
-  .sel-num { font-family: 'DM Mono', monospace; font-size: 10px; color: #4f6ef7; min-width: 18px; padding-top: 1px; }
-  .sel-info { flex: 1; min-width: 0; }
-  .sel-name { font-size: 11px; font-weight: 600; margin-bottom: 1px; word-break: break-word; line-height: 1.4; }
-  .sel-sub { font-size: 10px; color: var(--muted); }
-  .sel-rm { color: var(--muted); cursor: pointer; font-size: 12px; padding-top: 1px; line-height: 1; }
-  .sel-rm:hover { color: #ef4444; }
-  .empty-hint { font-size: 11px; color: var(--muted); line-height: 1.8; padding: 4px 0; }
-
-  .formula-box { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
-  .formula-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-  .formula-parts { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-  .fp { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
-  .fp-plus { color: var(--muted); font-size: 10px; }
-
-  .preset-box { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
-  .preset-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .preset-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-  .preset-nav { display: flex; gap: 4px; align-items: center; }
-  .preset-dots { display: flex; gap: 4px; align-items: center; margin-right: 8px; }
-  .preset-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); cursor: pointer; transition: background .15s; }
-  .preset-dot.active { background: #4f6ef7; }
-  .preset-next { font-family: 'DM Mono', monospace; font-size: 10px; color: #4f6ef7; cursor: pointer; padding: 2px 7px; border: 1px solid #4f6ef7; border-radius: 3px; transition: all .15s; }
-  .preset-next:hover { background: #4f6ef7; color: white; }
-  .preset-name { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
-  .preset-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
-  .preset-note { font-size: 10px; color: var(--muted); margin-bottom: 10px; }
-
-  /* ===== YT TABLE SECTION ===== */
-  .yt-main { padding: 20px; max-width: 1400px; margin: 0 auto; }
-  .yt-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 20px; margin-bottom: 16px; }
-  .yt-panel h2 { font-size: 14px; margin-bottom: 12px; color: var(--text); font-weight: 700; }
-  .yt-panel-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
-
-  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-  .toolbar select, .toolbar input[type="text"] { padding: 6px 10px; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; }
-  .toolbar input[type="date"] { padding: 5px 8px; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; }
-  .toolbar .date-sep { color: var(--text-sub); font-size: 12px; }
-  .toolbar-btn-icon { padding: 5px 10px; background: var(--card); color: var(--text-sub); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 12px; }
-  .toolbar-btn-icon:hover { background: var(--hover); color: var(--text); }
-  .toolbar input[type="text"] { flex: 1; min-width: 180px; }
-  .toolbar input:focus, .toolbar select:focus { outline: none; border-color: #4f6ef7; }
-  .toolbar button { padding: 6px 14px; background: #4f6ef7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; }
-  .toolbar button.secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
-  .toolbar button:hover { opacity: .85; }
-  .toolbar .count { font-size: 11px; color: var(--muted); margin-left: auto; }
-
-  .month-block { margin-bottom: 24px; }
-  .month-header { font-size: 13px; font-weight: 700; color: var(--text); padding: 8px 12px; background: rgba(79, 110, 247, .08); border-left: 3px solid #4f6ef7; margin-bottom: 8px; border-radius: 0 4px 4px 0; }
-  .month-count { font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 6px; }
-
-  table.yt { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-  table.yt th { padding: 10px 12px; text-align: left; background: rgba(0,0,0,.04); font-size: 11px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; }
-  table.yt td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: top; }
-  table.yt tr:last-child td { border-bottom: none; }
-  table.yt tr:hover td { background: rgba(79, 110, 247, .03); }
-  .date-cell { background: #fef3c7; color: #92400e; font-weight: 600; font-size: 12px; }
-  [data-theme="bw"] .date-cell { background: rgba(245,158,11,.12); color: #f59e0b; }
-  .code-cell { font-weight: 700; color: #4f6ef7; }
-  .url-cell a { color: #4f6ef7; text-decoration: none; word-break: break-all; }
-  .url-cell a:hover { text-decoration: underline; }
-  .region-cell { font-size: 11px; padding: 3px 8px; border-radius: 3px; background: rgba(0,0,0,.05); display: inline-block; }
-  [data-theme="bw"] .region-cell { background: var(--tag); }
-  .action-cell button { font-size: 11px; padding: 4px 10px; border-radius: 3px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; margin-right: 4px; }
-  .action-cell button:hover { border-color: #4f6ef7; }
-  .action-cell button.del { border-color: #ef4444; color: #ef4444; }
-  .action-cell button.del:hover { background: #ef4444; color: white; }
-
-  .add-row { padding: 12px; background: rgba(0,0,0,.02); border-top: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.add-row input, .add-row select { flex: 1 1 0; min-width: 80px; }
-.add-row input:first-child { flex: 1 1 0; min-width: 120px; }
-.add-row button { flex: 0 0 auto; }
-  [data-theme="bw"] .add-row { background: rgba(255,255,255,.02); }
-  .add-row input, .add-row select { padding: 6px 8px; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 3px; font-size: 11px; }
-  .add-row input:focus, .add-row select:focus { outline: none; border-color: #4f6ef7; }
-  .add-row button { padding: 6px 16px; background: #4f6ef7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; }
-  .add-row button:hover { opacity: .85; }
-
-  .batch-trigger { margin-top: 8px; padding: 12px; border: 1.5px dashed var(--border); border-radius: 4px; text-align: center; color: var(--muted); cursor: pointer; font-size: 12px; background: var(--card); transition: all .15s; }
-  .batch-trigger:hover { border-color: #4f6ef7; color: #4f6ef7; }
-  .batch-form { margin-top: 8px; padding: 14px; background: rgba(0,0,0,.03); border: 1px solid var(--border); border-radius: 4px; }
-  [data-theme="bw"] .batch-form { background: rgba(255,255,255,.03); }
-  .batch-hint { margin-bottom: 10px; font-size: 11px; color: var(--muted); padding: 6px 10px; background: rgba(245, 158, 11, .1); border-left: 2px solid #f59e0b; border-radius: 2px; }
-  .batch-col-labels { display: flex; gap: 4px; align-items: center; margin-bottom: 4px; font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
-  .batch-col-labels span { flex: 1 1 0; text-align: center; min-width: 80px; }
-  .batch-col-labels span.num { flex: 0 0 24px; text-align: center; }
-  .batch-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
-.batch-row span.num { flex: 0 0 24px; text-align: center; font-size: 11px; color: var(--muted); }
-.batch-row input[type=text] { flex: 1 1 0; min-width: 80px; }
-.batch-row select { flex: 0 0 80px; }
-.batch-row input.url { flex: 2 1 0; }
-  .batch-row .num { font-size: 11px; color: var(--muted); width: 24px; text-align: right; }
-  .batch-row input, .batch-row select { padding: 4px 6px; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 3px; font-size: 11px; }
-  .batch-row input { width: 90px; }
-  .batch-row input.url { flex: 1; min-width: 200px; }
-  .batch-row input.tags { width: 130px; }
-  .batch-actions { margin-top: 10px; display: flex; gap: 8px; }
-  .batch-actions button { padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; }
-  .batch-actions .save { background: #4f6ef7; color: white; }
-  .batch-actions .cancel { background: var(--card); color: var(--muted); border: 1px solid var(--border); }
-
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
-  .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: .5; }
-  .empty-state-text { font-size: 13px; margin-bottom: 20px; }
-  .empty-state-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  .empty-state-btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; }
-  .empty-state-btn.primary { background: #4f6ef7; color: white; }
-  .empty-state-btn.primary:hover { background: #3b5ed7; }
-  .empty-state-btn.secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
-  .empty-state-btn.secondary:hover { border-color: #4f6ef7; color: #4f6ef7; }
-
-  .toolbar-btn-add { background: #4f6ef7 !important; color: white !important; }
-  .toolbar-btn-add:hover { background: #3b5ed7 !important; }
-  .toolbar-btn-batch { background: #10b981 !important; color: white !important; }
-  .toolbar-btn-batch:hover { background: #059669 !important; }
-
-  /* ===== MODAL ===== */
-  .yt-modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-  .yt-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; min-width: 420px; max-width: 560px; box-shadow: 0 8px 32px rgba(0,0,0,.3); }
-  .yt-modal h3 { font-size: 15px; margin-bottom: 18px; color: var(--text); font-weight: 700; }
-  .yt-modal .form-row { display: flex; align-items: center; margin-bottom: 12px; gap: 8px; }
-  .yt-modal .form-row label { width: 70px; font-size: 12px; color: var(--text); font-weight: 500; text-align: right; }
-  .yt-modal .form-row input, .yt-modal .form-row select { flex: 1; padding: 7px 10px; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; }
-  .yt-modal .form-row input:focus, .yt-modal .form-row select:focus { outline: none; border-color: #4f6ef7; }
-  .yt-modal .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
-  .yt-modal .form-actions button { padding: 8px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; }
-  .yt-modal .form-actions .save { background: #4f6ef7; color: white; }
-  .yt-modal .form-actions .save:hover { background: #3b5ed7; }
-  .yt-modal .form-actions .cancel { background: var(--card); color: var(--text); border: 1px solid var(--border); }
-  .yt-modal .form-actions .cancel:hover { border-color: #4f6ef7; }
-
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-</style>
-</head>
-<body data-theme="light">
-
-<div class="header">
-  <div class="logo">Meto <span>素材零件库</span></div>
-  <div class="header-sub">前贴 · 模块化选择器 · v1.0.3</div>
-  <div class="section-tabs">
-    <div class="section-tab active" data-section="creative" onclick="switchSection('creative')">创意</div>
-    <div class="section-tab" data-section="ios" onclick="switchSection('ios')">📺 IOS素材</div>
-    <div class="section-tab" data-section="and" onclick="switchSection('and')">📺 AND素材</div>
-  </div>
-  <div class="header-actions">
-    <div class="theme-switch">
-      <button class="theme-btn active" data-theme-btn="light" onclick="setTheme('light')">🌤 明亮</button>
-      <button class="theme-btn" data-theme-btn="bw" onclick="setTheme('bw')">🌙 黑白</button>
-    </div>
-    <button class="btn edit-mode" id="editToggleBtn" onclick="toggleEditMode()">✏️ 编辑</button>
-    <button class="btn undo" id="undoBtn" onclick="undoLast()" disabled>↩ 撤回</button>
-    <button class="btn" onclick="exportData()">📤 导出</button>
-    <button class="btn" onclick="importData()">📥 导入</button>
-  </div>
-</div>
-
-<!-- Creative: 3-column layout -->
-<div id="creativeSection" class="layout">
-  <div class="left-panel">
-    <div class="panel-label">素材结构</div>
-
-    <!-- GRASS -->
-    <div class="nav-category" id="nav-grass">
-      <div class="nav-root" style="--lc:#ec4899" onclick="openCategory('grass',this)">
-        <div class="nav-dot" style="background:#ec4899"></div>
-        🌸 种草 <span class="nav-arrow" id="arrow-grass">▶</span><span class="nav-add" onclick="event.stopPropagation();addNewCategory(event)" title="新增一级标签">+</span>
-      </div>
-      <div class="nav-children" id="children-grass">
-        <div class="nav-child" onclick="openHook('grass','g-beauty-eu')">美女推荐 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('grass','g-influencer-eu')">达人推荐 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('grass','g-lifestyle-eu')">生活化场景 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('grass','g-forum-eu')">论坛分享 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('grass','g-beauty-sea')">美女/达人推荐 <span class="region-tag sea">中东南亚</span></div>
-        <div class="nav-child" onclick="openHook('grass','g-lifestyle-sea')">生活化场景 <span class="region-tag sea">中东南亚</span></div>
-      </div>
-    </div>
-
-    <!-- LIVE -->
-    <div class="nav-category" id="nav-live">
-      <div class="nav-root" style="--lc:#f97316" onclick="openCategory('live',this)">
-        <div class="nav-dot" style="background:#f97316"></div>
-        🔥 直播 <span class="nav-arrow" id="arrow-live">▶</span><span class="nav-add" onclick="event.stopPropagation();addNewCategory(event)" title="新增一级标签">+</span>
-      </div>
-      <div class="nav-children" id="children-live">
-        <div class="nav-child" onclick="openHook('live','l-live-eu')">直播互动 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('live','l-beauty-host-sea')">美女主播 <span class="region-tag sea">中东南亚</span></div>
-        <div class="nav-child" onclick="openHook('live','l-voice-sea')">语音房 <span class="region-tag sea">中东南亚</span></div>
-      </div>
-    </div>
-
-    <!-- ONV1 -->
-    <div class="nav-category" id="nav-onv1">
-      <div class="nav-root" style="--lc:#8b5cf6" onclick="openCategory('onv1',this)">
-        <div class="nav-dot" style="background:#8b5cf6"></div>
-        📹 1V1 <span class="nav-arrow" id="arrow-onv1">▶</span><span class="nav-add" onclick="event.stopPropagation();addNewCategory(event)" title="新增一级标签">+</span>
-      </div>
-      <div class="nav-children" id="children-onv1">
-        <div class="nav-child" onclick="openHook('onv1','o-video-eu')">视频聊天 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('onv1','o-phone-eu')">电话接通瞬间 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('onv1','o-msg-eu')">消息聊天 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('onv1','o-video-sea')">视频聊天 <span class="region-tag sea">中东南亚</span></div>
-      </div>
-    </div>
-
-    <!-- MATCH -->
-    <div class="nav-category" id="nav-match">
-      <div class="nav-root" style="--lc:#3b82f6" onclick="openCategory('match',this)">
-        <div class="nav-dot" style="background:#3b82f6"></div>
-        ⚡ 匹配 <span class="nav-arrow" id="arrow-match">▶</span><span class="nav-add" onclick="event.stopPropagation();addNewCategory(event)" title="新增一级标签">+</span>
-      </div>
-      <div class="nav-children" id="children-match">
-        <div class="nav-child" onclick="openHook('match','m-smart-eu')">智能匹配 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('match','m-ai-eu')">AI推荐 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('match','m-ai-sea')">AI推荐 <span class="region-tag sea">中东南亚</span></div>
-        <div class="nav-child" onclick="openHook('match','m-local-sea')">同城匹配 <span class="region-tag sea">中东南亚</span></div>
-      </div>
-    </div>
-
-    <!-- REALSHOW -->
-    <div class="nav-category" id="nav-realshow">
-      <div class="nav-root" style="--lc:#10b981" onclick="openCategory('realshow',this)">
-        <div class="nav-dot" style="background:#10b981"></div>
-        📸 真实展示 <span class="nav-arrow" id="arrow-realshow">▶</span><span class="nav-add" onclick="event.stopPropagation();addNewCategory(event)" title="新增一级标签">+</span>
-      </div>
-      <div class="nav-children" id="children-realshow">
-        <div class="nav-child" onclick="openHook('realshow','r-user-eu')">用户展示 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('realshow','r-beauty-sea')">美女展示 <span class="region-tag sea">中东南亚</span></div>
-      </div>
-    </div>
-
-    <!-- STORY -->
-    <div class="nav-category" id="nav-story">
-      <div class="nav-root" style="--lc:#ef4444" onclick="openCategory('story',this)">
-        <div class="nav-dot" style="background:#ef4444"></div>
-        🎭 剧情 <span class="nav-arrow" id="arrow-story">▶</span><span class="nav-add" onclick="event.stopPropagation();addNewCategory(event)" title="新增一级标签">+</span>
-      </div>
-      <div class="nav-children" id="children-story">
-        <div class="nav-child" onclick="openHook('story','s-emotion-eu')">情感共鸣 <span class="region-tag eu">欧美</span></div>
-        <div class="nav-child" onclick="openHook('story','s-companion-sea')">陪伴治愈 <span class="region-tag sea">中东南亚</span></div>
-      </div>
-    </div>
-
-    <!-- NATIVE -->
-    <div class="nav-category" id="nav-native">
-      <div class="nav-root" style="--lc:#06b6d4" onclick="openCategory('native',this)">
-        <div class="nav-dot" style="background:#06b6d4"></div>
-        🎙 原生 <span class="nav-arrow" id="arrow-native">▶</span><span class="nav-add" onclick="event.stopPropagation();addNewCategory(event)" title="新增一级标签">+</span>
-      </div>
-      <div class="nav-children" id="children-native">
-        <div class="nav-child" onclick="openHook('native','n-interview-sea')">用户采访 <span class="region-tag sea">中东南亚</span></div>
-      </div>
-    </div>
-
-    <div class="nav-special" id="nav-history" onclick="showHistory()">✦ 历史优秀组合</div>
-  </div>
-
-  <div class="center-panel" id="center"></div>
-
-  <div class="right-panel">
-    <div class="right-top">
-      <div class="right-top-label">已选零件</div>
-      <div class="count-badge" id="sel-count">0</div>
-    </div>
-    <div class="right-body">
-      <div id="sel-list" class="selected-list">
-        <div class="empty-hint">选层 → 选子类 → 点卡片<br>在这里组装素材公式</div>
-      </div>
-      <div id="formula-box" style="display:none" class="formula-box">
-        <div class="formula-label">素材公式</div>
-        <div class="formula-parts" id="formula-parts"></div>
-      </div>
-      <div class="preset-box">
-        <div class="preset-top">
-          <div class="preset-label">参考组合</div>
-          <div class="preset-nav">
-            <div class="preset-dots" id="preset-dots"></div>
-            <span class="preset-next" onclick="nextPreset()">换一个 →</span>
-          </div>
-        </div>
-        <div class="preset-name" id="preset-name"></div>
-        <div class="preset-tags" id="preset-tags"></div>
-        <div class="preset-note" id="preset-note"></div>
-        <button class="btn" style="width:100%;text-align:center" onclick="loadCurrentPreset()">载入此组合</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- IOS/AND: YT table -->
-<div id="ytSection" style="display:none">
-  <div class="yt-main">
-    <div class="yt-panel">
-      <h2 id="ytSectionTitle">📺 IOS素材</h2>
-      <div class="yt-panel-sub">按月份分组的 YouTube 素材登记表 · 支持搜索、地区筛选、批量新增</div>
-      <div class="toolbar">
-        <select id="yt-region-filter" onchange="renderYT()">
-          <option value="全部">全部地区</option>
-          <option value="欧美">欧美</option>
-          <option value="亚洲">亚洲</option>
-          <option value="中东">中东</option>
-          <option value="印度">印度</option>
-        </select>
-        <input type="text" id="yt-search" placeholder="搜索名称 / 标签 / 链接 / 日期..." oninput="renderYT()" />
-        <input type="date" id="yt-date-start" onchange="renderYT()" title="开始日期" />
-        <span class="date-sep">→</span>
-        <input type="date" id="yt-date-end" onchange="renderYT()" title="结束日期" />
-        <button class="toolbar-btn-icon" onclick="clearDateFilter()" title="清除日期筛选">✕</button>
-        <button class="toolbar-btn-add" onclick="openAddYTModal()" title="添加素材">➕</button>
-        <button class="toolbar-btn-batch" onclick="openBatchYTModal()" title="批量新增">📋</button>
-        <span class="count" id="yt-count"></span>
-      </div>
-      <div id="ytBody"></div>
-    </div>
-  </div>
-</div>
-
-<input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)" />
-
-<!-- 添加素材 Modal -->
-<div id="addYTModal" class="yt-modal-mask" style="display:none" onclick="if(event.target===this)closeAddYTModal()">
-  <div class="yt-modal">
-    <h3>➕ 添加素材</h3>
-    <div class="form-row">
-      <label>名称</label>
-      <input type="text" id="add-yt-name" placeholder="如 V1755宣传片" />
-    </div>
-    <div class="form-row">
-      <label>链接 *</label>
-      <input type="text" id="add-yt-url" placeholder="https://www.youtube.com/watch?v=..." />
-    </div>
-    <div class="form-row">
-      <label>地区 *</label>
-      <select id="add-yt-region">
-        <option value="欧美">欧美</option>
-        <option value="亚洲">亚洲</option>
-        <option value="中东">中东</option>
-        <option value="印度">印度</option>
-      </select>
-    </div>
-    <div class="form-row">
-      <label>日期 *</label>
-      <input type="text" id="add-yt-date" placeholder="2026.7.2" />
-    </div>
-    <div class="form-row">
-      <label>标签</label>
-      <input type="text" id="add-yt-tags" placeholder="逗号分隔，如 美女,开场" />
-    </div>
-    <div class="form-actions">
-      <button class="cancel" onclick="closeAddYTModal()">取消</button>
-      <button class="save" onclick="submitAddYT()">💾 保存</button>
-    </div>
-  </div>
-</div>
-
-<!-- 批量新增 Modal -->
-<div id="batchYTModal" class="yt-modal-mask" style="display:none" onclick="if(event.target===this)closeBatchYTModal()">
-  <div class="yt-modal" style="min-width:680px;max-width:920px">
-    <h3>📋 批量新增 10 条素材</h3>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;padding:8px 10px;background:rgba(245,158,11,.1);border-left:2px solid #f59e0b;border-radius:2px">
-      💡 留空行不会保存。日期默认今天，编号自动 +1，地区可单独调整。
-    </div>
-    <div style="display:grid;grid-template-columns:30px 1fr 80px 2fr 130px;gap:6px;font-size:10px;color:var(--muted);margin-bottom:6px;padding:0 4px">
-      <span>#</span><span>名称</span><span>地区</span><span>链接</span><span>标签</span>
-    </div>
-    <div id="batch-yt-rows"></div>
-    <div class="form-actions">
-      <button class="cancel" onclick="closeBatchYTModal()">取消</button>
-      <button class="save" onclick="submitBatchYT()">💾 一键保存全部</button>
-    </div>
-  </div>
-</div>
-
 <script>
 /* ===== CONSTANTS ===== */
 const CATEGORY_COLORS = {
@@ -1067,7 +381,7 @@ function renderCenter() {
     { cls: 'cta', label: 'CTA', desc: hookItem.stages.cta },
   ].map(function(s) {
     return '<div class="stage-card ' + s.cls + '"><div class="stage-label ' + s.cls + '">' + s.label + '</div><div class="stage-desc">' + escHtml(s.desc) + '</div>' +
-      '<div class="stage-card-edit"><button onclick="event.stopPropagation();editStage(\'' + curCategory + '\',\'' + (curHookId||'') + '\',\'' + s.cls + '\')" title="编辑此项">✎</button></div>' +
+      '<div class="stage-card-edit"><button onclick="event.stopPropagation();openEditPartModal(\'' + curCategory + '\',\'' + (curHookId||'') + '\',\'' + s.cls + '\')" title="编辑此钩子">✎</button></div>' +
       '</div>';
   }).join('');
 
@@ -1085,7 +399,7 @@ function renderCenter() {
   let editActions = '';
   if (editMode) {
     editActions = '<div style="display:flex;gap:4px;margin-top:12px;">' +
-      '<button class="btn" style="font-size:11px;padding:5px 12px;" onclick="editPart(\'' + curCategory + '\',\'' + hookItem.id + '\')">✎ 编辑</button>' +
+      '<button class="btn" style="font-size:11px;padding:5px 12px;" onclick="openEditPartModal(\'' + curCategory + '\',\'' + hookItem.id + '\')">✎ 编辑</button>' +
       '<button class="btn" style="font-size:11px;padding:5px 12px;color:#ef4444;border-color:#ef4444;" onclick="delPart(\'' + curCategory + '\',\'' + hookItem.id + '\')">✕ 删除</button>' +
       '</div>';
   }
@@ -1104,7 +418,7 @@ function renderCenter() {
         '<div class="card-name">' + esc(rel.name) + ' <span class="region-tag ' + relRegionClass + '">' + esc(rel.region) + '</span></div>' +
         '<div class="card-desc">' + esc(rel.stages.middle) + '</div>' +
         '<div class="card-tags">' + rel.tags.map(function(t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
-        (editMode ? '<div class="card-edit-actions"><button onclick="event.stopPropagation();editPart(\'' + curCategory + '\',\'' + rel.id + '\')">✎</button><button class="del" onclick="event.stopPropagation();delPart(\'' + curCategory + '\',\'' + rel.id + '\')">✕</button></div>' : '') +
+        (editMode ? '<div class="card-edit-actions"><button onclick="event.stopPropagation();openEditPartModal(\'' + curCategory + '\',\'' + rel.id + '\')">✎</button><button class="del" onclick="event.stopPropagation();delPart(\'' + curCategory + '\',\'' + rel.id + '\')">✕</button></div>' : '') +
         '</div>';
     }).join('') +
     '<div class="part-card-add" onclick="openAddModal(\'' + curCategory + '\', \'' + (relatedItemsOther[0] ? relatedItemsOther[0].region : '中东南亚') + '\')" title="添加新钩子方案">+</div>' +
@@ -1137,7 +451,7 @@ function renderCenter() {
           '<div class="card-tags">' +
             '<span class="tag" style="color:#3b82f6;border-color:#3b82f6;">前:' + esc(rel.stages.before3s.substring(0,20)) + '…</span>' +
           '</div>' +
-          (editMode ? '<div class="card-edit-actions"><button onclick="event.stopPropagation();editPart(\'' + curCategory + '\',\'' + rel.id + '\')">✎</button><button class="del" onclick="event.stopPropagation();delPart(\'' + curCategory + '\',\'' + rel.id + '\')">✕</button></div>' : '') +
+          (editMode ? '<div class="card-edit-actions"><button onclick="event.stopPropagation();openEditPartModal(\'' + curCategory + '\',\'' + rel.id + '\')">✎</button><button class="del" onclick="event.stopPropagation();delPart(\'' + curCategory + '\',\'' + rel.id + '\')">✕</button></div>' : '') +
           '</div>';
       }).join('') +
     '<div class="part-card-add" onclick="openAddModal(\'' + curCategory + '\', \'' + hookRegion + '\')" title="添加新钩子方案">+</div>' +
@@ -1253,78 +567,82 @@ function toggleItem(item, cat, color) {
 function removeItem(id) { selected = selected.filter(function(s) { return s.id !== id; }); renderRight(); renderCenter(); }
 function clearAll() { selected = []; renderRight(); renderCenter(); }
 
-/* ===== EDIT / DELETE PARTS ===== */
+
+/* ===== EDIT PART MODAL ===== */
 let _editPartCtx = { cat: null, id: null };
 
-function editPart(cat, id) {
-  const catData = DATA[cat];
+function openEditPartModal(cat, id) {
+  var catData = DATA[cat];
   if (!catData) return;
-  const item = catData.items.find(function(x) { return x.id === id; });
+  var item = catData.items.find(function(x) { return x.id === id; });
   if (!item) return;
-  
   _editPartCtx = { cat: cat, id: id };
-  
-  // Populate modal
   document.getElementById('ep-name').value = item.name || '';
-  const rgs = document.getElementsByName('ep-region');
-  for (let i = 0; i < rgs.length; i++) {
-    rgs[i].checked = (rgs[i].value === (item.region || '欧美'));
-  }
+  var rgs = document.getElementsByName('ep-region');
+  for (var r = 0; r < rgs.length; r++) { rgs[r].checked = (rgs[r].value === (item.region || '欧美')); }
   document.getElementById('ep-before3s').value = item.stages.before3s || '';
   document.getElementById('ep-middle').value = item.stages.middle || '';
   document.getElementById('ep-cta').value = item.stages.cta || '';
-  const pots = document.getElementsByName('ep-pot');
-  for (let i = 0; i < pots.length; i++) {
-    pots[i].checked = (pots[i].value === (item.pot || '中'));
-  }
-  
-  // Update title
-  document.querySelector('#edit-part-modal .modal-title').textContent = '编辑钩子方案';
-  
+  var pots = document.getElementsByName('ep-pot');
+  for (var pr = 0; pr < pots.length; pr++) { pots[pr].checked = (pots[pr].value === (item.pot || '中')); }
   document.getElementById('edit-part-modal').classList.add('show');
   setTimeout(function() { document.getElementById('ep-name').focus(); }, 50);
-}
-
-function submitEditPart() {
-  const ctx = _editPartCtx;
-  if (!ctx.cat || !ctx.id) return;
-  
-  const catData = DATA[ctx.cat];
-  if (!catData) return;
-  const item = catData.items.find(function(x) { return x.id === ctx.id; });
-  if (!item) return;
-  
-  const name = document.getElementById('ep-name').value.trim();
-  if (!name) { alert('请输入名称'); return; }
-  
-  const rgs = document.getElementsByName('ep-region');
-  let region = '欧美';
-  for (let i = 0; i < rgs.length; i++) {
-    if (rgs[i].checked) { region = rgs[i].value; break; }
-  }
-  
-  const pots = document.getElementsByName('ep-pot');
-  let pot = '中';
-  for (let i = 0; i < pots.length; i++) {
-    if (pots[i].checked) { pot = pots[i].value; break; }
-  }
-  
-  pushUndo();
-  item.name = name;
-  item.region = region;
-  item.pot = pot;
-  item.stages.before3s = (document.getElementById('ep-before3s').value || '').trim();
-  item.stages.middle = (document.getElementById('ep-middle').value || '').trim();
-  item.stages.cta = (document.getElementById('ep-cta').value || '').trim();
-  
-  saveData();
-  closeEditPartModal();
-  renderCenter();
 }
 
 function closeEditPartModal() {
   document.getElementById('edit-part-modal').classList.remove('show');
   _editPartCtx = { cat: null, id: null };
+}
+
+function submitEditPart() {
+  var ctx = _editPartCtx;
+  if (!ctx.cat || !ctx.id) return;
+  var catData = DATA[ctx.cat];
+  if (!catData) return;
+  var item = catData.items.find(function(x) { return x.id === ctx.id; });
+  if (!item) return;
+  var n = document.getElementById('ep-name').value.trim();
+  if (!n) { alert('请输入名称'); return; }
+  var rgs = document.getElementsByName('ep-region');
+  var rg = '欧美';
+  for (var ri = 0; ri < rgs.length; ri++) { if (rgs[ri].checked) { rg = rgs[ri].value; break; } }
+  var pots = document.getElementsByName('ep-pot');
+  var pot = '中';
+  for (var pi = 0; pi < pots.length; pi++) { if (pots[pi].checked) { pot = pots[pi].value; break; } }
+  pushUndo();
+  item.name = n;
+  item.region = rg;
+  item.pot = pot;
+  item.stages.before3s = (document.getElementById('ep-before3s').value || '').trim();
+  item.stages.middle = (document.getElementById('ep-middle').value || '').trim();
+  item.stages.cta = (document.getElementById('ep-cta').value || '').trim();
+  saveData();
+  closeEditPartModal();
+  renderCenter();
+}
+
+/* ===== EDIT / DELETE PARTS ===== */
+function editPart(cat, id) {
+  const catData = DATA[cat];
+  if (!catData) return;
+  const item = catData.items.find(function(x) { return x.id === id; });
+  if (!item) return;
+  const n = prompt('钩子类型名称:', item.name);
+  if (n === null) return;
+  pushUndo();
+  item.name = n.trim();
+
+  const b3 = prompt('前3秒内容:', item.stages.before3s);
+  if (b3 !== null) item.stages.before3s = b3.trim();
+
+  const mid = prompt('中部内容:', item.stages.middle);
+  if (mid !== null) item.stages.middle = mid.trim();
+
+  const cta = prompt('CTA内容:', item.stages.cta);
+  if (cta !== null) item.stages.cta = cta.trim();
+
+  saveData();
+  renderCenter();
 }
 
 function delPart(cat, id) {
@@ -1339,37 +657,19 @@ function delPart(cat, id) {
 }
 
 /* ===== EDIT STAGE (前3秒/中部/CTA) ===== */
-let _editStageCtx = { cat: null, id: null, stageKey: null };
-
 function editStage(cat, id, stageKey) {
   const catData = DATA[cat];
   if (!catData) return;
   const item = catData.items.find(function(x) { return x.id === id; });
   if (!item) return;
-  
-  _editStageCtx = { cat: cat, id: id, stageKey: stageKey };
   const labelMap = { before3s: '前3秒', middle: '中部', cta: 'CTA' };
   const label = labelMap[stageKey] || stageKey;
-  
-  // Populate modal
-  document.getElementById('ep-name').value = item.name || '';
-  const rgs = document.getElementsByName('ep-region');
-  for (let i = 0; i < rgs.length; i++) {
-    rgs[i].checked = (rgs[i].value === (item.region || '欧美'));
-  }
-  document.getElementById('ep-before3s').value = item.stages.before3s || '';
-  document.getElementById('ep-middle').value = item.stages.middle || '';
-  document.getElementById('ep-cta').value = item.stages.cta || '';
-  const pots = document.getElementsByName('ep-pot');
-  for (let i = 0; i < pots.length; i++) {
-    pots[i].checked = (pots[i].value === (item.pot || '中'));
-  }
-  
-  // Update title
-  document.querySelector('#edit-part-modal .modal-title').textContent = '编辑 ' + label;
-  
-  document.getElementById('edit-part-modal').classList.add('show');
-  setTimeout(function() { document.getElementById('ep-name').focus(); }, 50);
+  const val = prompt(label + '内容:', item.stages[stageKey] || '');
+  if (val === null) return;
+  pushUndo();
+  item.stages[stageKey] = val.trim();
+  saveData();
+  renderCenter();
 }
 
 /* ===== ADD NEW HOOK (兼容旧调用，默认转 openAddModal) ===== */
@@ -2276,8 +1576,6 @@ function submitAddHook() {
 
 // ESC 键关闭所有弹框
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { closeAddModal(); closeCatModal(); closeHistoryModal(); closeEditPartModal(); }
+  if (e.key === 'Escape') { closeAddModal(); closeCatModal(); closeHistoryModal(); }
 });
 </script>
-</body>
-</html>
