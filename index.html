@@ -473,6 +473,8 @@
       <button class="theme-btn active" data-theme-btn="light" onclick="setTheme('light')">🌤 明亮</button>
       <button class="theme-btn" data-theme-btn="bw" onclick="setTheme('bw')">🌙 黑白</button>
     </div>
+    <div id="sync-indicator" style="font-family:'DM Mono',monospace;font-size:10px;padding:0 8px;border-right:1px solid var(--border);margin-right:4px;"><span style="color:#6b6b80">○ 离线</span></div>
+    <button class="btn" id="cloudSetupBtn" onclick="openCloudModal()" title="云同步设置">☁️ 同步</button>
     <button class="btn edit-mode" id="editToggleBtn" onclick="toggleEditMode()">✏️ 编辑</button>
     <button class="btn undo" id="undoBtn" onclick="undoLast()" disabled>↩ 撤回</button>
     <button class="btn" onclick="exportData()">📤 导出</button>
@@ -723,6 +725,18 @@ const YT_STORAGE_KEY = 'meto_yt_data_v103';
 const THEME_KEY = 'meto_theme';
 const UNDO_MAX = 5;
 
+/* ===== JSONBIN.IO 云同步配置 ===== */
+const JSONBIN_BASE = 'https://api.jsonbin.io/v3/b';
+const BIN_ID_KEY = 'meto_jsonbin_id';       // 本地存储的 Bin ID
+const BIN_KEY_KEY = 'meto_jsonbin_key';       // 写入密钥（master key）
+const YT_BIN_ID_KEY = 'meto_yt_jsonbin_id';  // YT 素材的 Bin ID
+const YT_BIN_KEY_KEY = 'meto_yt_jsonbin_key';
+
+/* ===== 云同步状态 ===== */
+let cloudSyncing = false;
+let cloudLastSync = null;
+let cloudError = null;
+
 /* ===== DEFAULT DATA (7 categories) ===== */
 const DEFAULT_DATA = {
   grass: {
@@ -943,9 +957,137 @@ function loadData() {
   } catch(e) {}
   return JSON.parse(JSON.stringify(DEFAULT_DATA));
 }
+
+/* ===== JSONBIN.IO 云同步函数 ===== */
+function getBinId() { return localStorage.getItem(BIN_ID_KEY); }
+function getBinKey() { return localStorage.getItem(BIN_KEY_KEY); }
+function getYtBinId() { return localStorage.getItem(YT_BIN_ID_KEY); }
+function getYtBinKey() { return localStorage.getItem(YT_BIN_KEY_KEY); }
+
+// 云端加载（零件数据）
+async function loadDataFromCloud() {
+  const binId = getBinId();
+  if (!binId) return null;
+  try {
+    const res = await fetch(JSONBIN_BASE + '/' + binId + '/latest', {
+      headers: { 'X-Bin-Meta': 'false' }
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.record || json;
+  } catch(e) { return null; }
+}
+
+// 云端保存（零件数据）
+async function saveDataToCloud(data) {
+  const binId = getBinId();
+  const binKey = getBinKey();
+  if (!binId) return false;
+  cloudSyncing = true; updateSyncIndicator();
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (binKey) headers['X-Master-Key'] = binKey;
+    const res = await fetch(JSONBIN_BASE + '/' + binId, {
+      method: 'PUT',
+      headers: headers,
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      cloudLastSync = new Date();
+      cloudError = null;
+      updateSyncIndicator();
+      return true;
+    }
+    throw new Error('HTTP ' + res.status);
+  } catch(e) {
+    cloudError = e.message;
+    updateSyncIndicator();
+    return false;
+  } finally {
+    cloudSyncing = false;
+    updateSyncIndicator();
+  }
+}
+
+// 云端加载 YT 数据
+async function loadYTFromCloud() {
+  const binId = getYtBinId();
+  if (!binId) return null;
+  try {
+    const res = await fetch(JSONBIN_BASE + '/' + binId + '/latest', {
+      headers: { 'X-Bin-Meta': 'false' }
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.record || json;
+  } catch(e) { return null; }
+}
+
+// 云端保存 YT 数据
+async function saveYTToCloud(data) {
+  const binId = getYtBinId();
+  const binKey = getYtBinKey();
+  if (!binId) return false;
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (binKey) headers['X-Master-Key'] = binKey;
+    const res = await fetch(JSONBIN_BASE + '/' + binId, {
+      method: 'PUT',
+      headers: headers,
+      body: JSON.stringify(data)
+    });
+    return res.ok;
+  } catch(e) { return false; }
+}
+
+// 创建新 Bin
+async function createNewBin(data) {
+  const binKey = getBinKey();
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (binKey) headers['X-Master-Key'] = binKey;
+    const res = await fetch(JSONBIN_BASE, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    return json.metadata?.id || null;
+  } catch(e) { return null; }
+}
+
+// 更新同步状态指示器
+function updateSyncIndicator() {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  if (cloudSyncing) {
+    el.innerHTML = '<span style="color:#f59e0b">⟳ 同步中...</span>';
+  } else if (cloudError) {
+    el.innerHTML = '<span style="color:#ef4444" title="' + cloudError + '">⚠ 本地模式</span>';
+  } else if (cloudLastSync) {
+    const t = cloudLastSync;
+    const hh = String(t.getHours()).padStart(2,'0');
+    const mm = String(t.getMinutes()).padStart(2,'0');
+    el.innerHTML = '<span style="color:#10b981" title="最后同步: ' + t.toLocaleString() + '">✓ 已同步 ' + hh + ':' + mm + '</span>';
+  } else {
+    el.innerHTML = '<span style="color:#6b6b80">○ 离线</span>';
+  }
+}
+
+function loadData() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+
 function saveData() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch(e) {}
+  saveDataToCloud(DATA); // 异步云同步，不阻塞
 }
+
 function loadYT() {
   try {
     const s = localStorage.getItem(YT_STORAGE_KEY);
@@ -955,6 +1097,7 @@ function loadYT() {
 }
 function saveYT() {
   try { localStorage.setItem(YT_STORAGE_KEY, JSON.stringify(YT_DATA)); } catch(e) {}
+  saveYTToCloud(YT_DATA); // 异步云同步，不阻塞
 }
 
 /* ===== UNDO ===== */
@@ -2307,8 +2450,203 @@ function submitAddHook() {
 
 // ESC 键关闭所有弹框
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { closeAddModal(); closeCatModal(); closeHistoryModal(); closeEditPartModal(); }
+  if (e.key === 'Escape') { closeAddModal(); closeCatModal(); closeHistoryModal(); closeEditPartModal(); closeCloudModal(); }
 });
+
+/* ===== 云同步设置弹框 ===== */
+function openCloudModal() {
+  const binId = getBinId() || '';
+  const binKey = getBinKey() || '';
+  const ytBinId = getYtBinId() || '';
+  const ytBinKey = getYtBinKey() || '';
+  document.getElementById('cloud-bin-id').value = binId;
+  document.getElementById('cloud-bin-key').value = binKey;
+  document.getElementById('cloud-yt-bin-id').value = ytBinId;
+  document.getElementById('cloud-yt-bin-key').value = ytBinKey;
+  document.getElementById('cloud-modal').classList.add('show');
+  updateCloudStatus();
+}
+
+function closeCloudModal() {
+  document.getElementById('cloud-modal').classList.remove('show');
+}
+
+function updateCloudStatus() {
+  const binId = getBinId();
+  const ytBinId = getYtBinId();
+  const statusEl = document.getElementById('cloud-status');
+  if (binId) {
+    statusEl.innerHTML = '<span style="color:#10b981">✓ 已配置云同步</span><br><small style="color:var(--muted)">零件 Bin: ' + binId + '<br>素材 Bin: ' + (ytBinId || '未配置') + '</small>';
+  } else {
+    statusEl.innerHTML = '<span style="color:#6b6b80">○ 尚未配置云同步</span>';
+  }
+}
+
+async function submitCloudSetup() {
+  const binId = document.getElementById('cloud-bin-id').value.trim();
+  const binKey = document.getElementById('cloud-bin-key').value.trim();
+  const ytBinId = document.getElementById('cloud-yt-bin-id').value.trim();
+  const ytBinKey = document.getElementById('cloud-yt-bin-key').value.trim();
+
+  if (binId) localStorage.setItem(BIN_ID_KEY, binId);
+  else localStorage.removeItem(BIN_ID_KEY);
+  if (binKey) localStorage.setItem(BIN_KEY_KEY, binKey);
+  else localStorage.removeItem(BIN_KEY_KEY);
+  if (ytBinId) localStorage.setItem(YT_BIN_ID_KEY, ytBinId);
+  else localStorage.removeItem(YT_BIN_ID_KEY);
+  if (ytBinKey) localStorage.setItem(YT_BIN_KEY_KEY, ytBinKey);
+  else localStorage.removeItem(YT_BIN_KEY_KEY);
+
+  // 尝试从云端拉取最新数据
+  if (binId) {
+    const cloudData = await loadDataFromCloud();
+    if (cloudData) {
+      DATA = cloudData;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+      renderCenter();
+    }
+  }
+  if (ytBinId) {
+    const cloudYT = await loadYTFromCloud();
+    if (cloudYT) {
+      YT_DATA = cloudYT;
+      localStorage.setItem(YT_STORAGE_KEY, JSON.stringify(YT_DATA));
+    }
+  }
+
+  updateCloudStatus();
+  updateSyncIndicator();
+  closeCloudModal();
+}
+
+async function createNewCloudBin() {
+  if (!confirm('将创建新的云端数据库，当前本地数据将作为初始内容。确定继续？')) return;
+  const el = document.getElementById('cloud-status');
+  el.innerHTML = '<span style="color:#f59e0b">⟳ 正在创建云端数据库...</span>';
+
+  // 先创建零件数据 Bin
+  const binKey = document.getElementById('cloud-bin-key').value.trim();
+  if (binKey) localStorage.setItem(BIN_KEY_KEY, binKey);
+
+  const binId = await createNewBin(DATA);
+  if (binId) {
+    localStorage.setItem(BIN_ID_KEY, binId);
+    cloudLastSync = new Date();
+    updateSyncIndicator();
+    el.innerHTML = '<span style="color:#10b981">✓ 零件数据库创建成功！</span><br><small style="color:var(--muted)">Bin ID: ' + binId + '<br>请保存此 ID 给其他成员使用</small>';
+  } else {
+    el.innerHTML = '<span style="color:#ef4444">✗ 创建失败，请检查网络或 API Key</span>';
+  }
+}
+
+async function pullFromCloud() {
+  if (!getBinId()) { alert('请先配置云端 Bin ID'); return; }
+  const el = document.getElementById('cloud-status');
+  el.innerHTML = '<span style="color:#f59e0b">⟳ 正在从云端拉取...</span>';
+  const cloudData = await loadDataFromCloud();
+  if (cloudData) {
+    if (!confirm('将用云端数据覆盖本地数据，是否继续？')) {
+      updateCloudStatus();
+      return;
+    }
+    DATA = cloudData;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    cloudLastSync = new Date();
+    updateSyncIndicator();
+    renderCenter();
+    el.innerHTML = '<span style="color:#10b981">✓ 拉取成功！</span>';
+  } else {
+    el.innerHTML = '<span style="color:#ef4444">✗ 拉取失败，请检查 Bin ID 和网络</span>';
+  }
+}
+
+function clearCloudConfig() {
+  if (!confirm('确定清除云同步配置？本地数据不受影响。')) return;
+  localStorage.removeItem(BIN_ID_KEY);
+  localStorage.removeItem(BIN_KEY_KEY);
+  localStorage.removeItem(YT_BIN_ID_KEY);
+  localStorage.removeItem(YT_BIN_KEY_KEY);
+  cloudLastSync = null;
+  cloudError = null;
+  updateCloudStatus();
+  updateSyncIndicator();
+  document.getElementById('cloud-bin-id').value = '';
+  document.getElementById('cloud-bin-key').value = '';
+  document.getElementById('cloud-yt-bin-id').value = '';
+  document.getElementById('cloud-yt-bin-key').value = '';
+}
+
+/* ===== 初始化：从云端加载（如果已配置） ===== */
+async function initCloudSync() {
+  updateSyncIndicator();
+  if (!getBinId()) return;
+  // 后台静默拉取，不阻塞页面渲染
+  const cloudData = await loadDataFromCloud();
+  if (cloudData) {
+    DATA = cloudData;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    if (currentSection === 'creative') renderCenter();
+    cloudLastSync = new Date();
+    updateSyncIndicator();
+  }
+  if (getYtBinId()) {
+    const cloudYT = await loadYTFromCloud();
+    if (cloudYT) {
+      YT_DATA = cloudYT;
+      localStorage.setItem(YT_STORAGE_KEY, JSON.stringify(YT_DATA));
+    }
+  }
+}
+
+/* ===== INIT ===== */
+initTheme();
+switchSection('creative');
+initCloudSync(); // 异步从云端拉取最新数据（如果已配置）
+
+/* ===== Cloud Sync Modal HTML ===== */
 </script>
+
+<!-- 云同步设置弹框 -->
+<div id="cloud-modal" class="modal-overlay" onclick="if(event.target===this)closeCloudModal()">
+  <div class="modal-card" style="max-width:480px" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">☁️ 云同步设置</div>
+      <button class="modal-close" onclick="closeCloudModal()" title="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="cloud-status" style="margin-bottom:16px;padding:10px;background:var(--bg);border-radius:6px;font-size:12px;"></div>
+      <div style="background:rgba(79,110,247,.08);padding:12px;border-radius:6px;margin-bottom:16px;font-size:11px;color:#4f6ef7;line-height:1.6;">
+        <strong>📖 使用说明：</strong><br>
+        1. 访问 <a href="https://jsonbin.io" target="_blank" style="color:#4f6ef7">jsonbin.io</a> 注册免费账号<br>
+        2. 创建一个 Private Bin，获取 <strong>Bin ID</strong> 和 <strong>Master Key</strong><br>
+        3. 将 Bin ID 和 Master Key 填入下方，保存后即可多人同步<br>
+        4. 分享 Bin ID 给团队成员（不需要 Key，只需 Bin ID 即可读取）
+      </div>
+      <div class="form-row">
+        <label>零件数据 Bin ID <span style="color:var(--muted);font-weight:400">(必填)</span></label>
+        <input id="cloud-bin-id" type="text" placeholder="例：8abc1234...（在 jsonbin.io 创建后获取）"/>
+      </div>
+      <div class="form-row">
+        <label>零件数据 Master Key <span style="color:var(--muted);font-weight:400">(写入权限，需保密)</span></label>
+        <input id="cloud-bin-key" type="password" placeholder="X-Master-Key 的值（仅创建者需要）"/>
+      </div>
+      <div class="form-row">
+        <label>素材数据 Bin ID <span style="color:var(--muted);font-weight:400">(可选，用于同步 IOS/AND 素材)</span></label>
+        <input id="cloud-yt-bin-id" type="text" placeholder="例：9def5678..."/>
+      </div>
+      <div class="form-row">
+        <label>素材数据 Master Key <span style="color:var(--muted);font-weight:400">(可选)</span></label>
+        <input id="cloud-yt-bin-key" type="password" placeholder="X-Master-Key 的值"/>
+      </div>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px;">
+      <button class="btn" style="font-size:11px;color:#ef4444;border-color:#ef4444" onclick="clearCloudConfig()">🗑 清除配置</button>
+      <button class="btn" style="font-size:11px;" onclick="pullFromCloud()">⬇ 拉取云端数据</button>
+      <button class="btn" style="font-size:11px;background:#f59e0b;border-color:#f59e0b;color:white" onclick="createNewCloudBin()">+ 创建新数据库</button>
+      <button class="btn btn-primary" onclick="submitCloudSetup()">保存并同步</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
