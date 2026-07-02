@@ -347,6 +347,10 @@
 
   .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
   .toolbar select, .toolbar input[type="text"] { padding: 6px 10px; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; }
+  .toolbar input[type="date"] { padding: 5px 8px; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; }
+  .toolbar .date-sep { color: var(--text-sub); font-size: 12px; }
+  .toolbar-btn-icon { padding: 5px 10px; background: var(--card); color: var(--text-sub); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .toolbar-btn-icon:hover { background: var(--hover); color: var(--text); }
   .toolbar input[type="text"] { flex: 1; min-width: 180px; }
   .toolbar input:focus, .toolbar select:focus { outline: none; border-color: #4f6ef7; }
   .toolbar button { padding: 6px 14px; background: #4f6ef7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; }
@@ -611,9 +615,13 @@
           <option value="中东">中东</option>
           <option value="印度">印度</option>
         </select>
-        <input type="text" id="yt-search" placeholder="搜索名称 / 标签 / 链接..." oninput="renderYT()" />
-        <button class="toolbar-btn-add" onclick="openAddYTModal()">➕ 添加素材</button>
-        <button class="toolbar-btn-batch" onclick="openBatchYTModal()">📋 批量新增 10 条</button>
+        <input type="text" id="yt-search" placeholder="搜索名称 / 标签 / 链接 / 日期..." oninput="renderYT()" />
+        <input type="date" id="yt-date-start" onchange="renderYT()" title="开始日期" />
+        <span class="date-sep">→</span>
+        <input type="date" id="yt-date-end" onchange="renderYT()" title="结束日期" />
+        <button class="toolbar-btn-icon" onclick="clearDateFilter()" title="清除日期筛选">✕</button>
+        <button class="toolbar-btn-add" onclick="openAddYTModal()" title="添加素材">➕</button>
+        <button class="toolbar-btn-batch" onclick="openBatchYTModal()" title="批量新增">📋</button>
         <span class="count" id="yt-count"></span>
       </div>
       <div id="ytBody"></div>
@@ -1494,14 +1502,19 @@ function renderYT() {
   if (!body) return;
   var filter = (document.getElementById('yt-region-filter') || {}).value || '全部';
   var search = ((document.getElementById('yt-search') || {}).value || '').toLowerCase().trim();
+  var dateStart = (document.getElementById('yt-date-start') || {}).value || '';
+  var dateEnd = (document.getElementById('yt-date-end') || {}).value || '';
   var list = YT_DATA[currentSection] || [];
   var items = list.filter(function(it) {
     if (filter !== '全部' && it.region !== filter) return false;
+    if (dateStart && it.date && it.date < dateStart) return false;
+    if (dateEnd && it.date && it.date > dateEnd) return false;
     if (search) {
       var n = (it.name || '').toLowerCase();
       var u = (it.url || '').toLowerCase();
       var t = (it.tags || []).join(' ').toLowerCase();
-      if (n.indexOf(search) === -1 && u.indexOf(search) === -1 && t.indexOf(search) === -1) return false;
+      var d = (it.date || '').toLowerCase();
+      if (n.indexOf(search) === -1 && u.indexOf(search) === -1 && t.indexOf(search) === -1 && d.indexOf(search) === -1) return false;
     }
     return true;
   });
@@ -1613,6 +1626,13 @@ document.addEventListener('click', function(e) {
 });
 
 /* ===== ADD YT MODAL ===== */
+function clearDateFilter() {
+  var s = document.getElementById('yt-date-start');
+  var e = document.getElementById('yt-date-end');
+  if (s) s.value = '';
+  if (e) e.value = '';
+  renderYT();
+}
 function openAddYTModal() {
   var m = document.getElementById('addYTModal');
   if (!m) return;
