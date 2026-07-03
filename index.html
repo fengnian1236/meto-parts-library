@@ -953,8 +953,17 @@ let undoStack = [];
 function loadData() {
   try {
     const s = localStorage.getItem(STORAGE_KEY);
-    if (s) return JSON.parse(s);
-  } catch(e) {}
+    if (s) {
+      const data = JSON.parse(s);
+      // 验证数据格式是否正确（必须包含所有7个分类）
+      const requiredCats = ['grass', 'live', 'onv1', 'match', 'realshow', 'story', 'native'];
+      const hasAllCats = requiredCats.every(cat => data && data[cat] && data[cat].items);
+      if (hasAllCats) return data;
+      console.log('本地数据格式不完整，使用默认数据');
+    }
+  } catch(e) {
+    console.log('加载本地数据失败:', e);
+  }
   return JSON.parse(JSON.stringify(DEFAULT_DATA));
 }
 
@@ -1098,17 +1107,28 @@ function saveData() {
 function resetData() {
   if (!confirm('确定要重置所有数据到默认状态吗？这将清除本地所有修改。')) return;
   try {
+    // 清除所有相关 localStorage
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(YT_STORAGE_KEY);
+    localStorage.removeItem(BIN_ID_KEY);
+    localStorage.removeItem(BIN_KEY_KEY);
+    localStorage.removeItem(YT_BIN_ID_KEY);
+    localStorage.removeItem(YT_BIN_KEY_KEY);
+    localStorage.removeItem(THEME_KEY);
+    // 重新加载默认数据
     DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
     YT_DATA = { ios: [], and: [] };
     curCategory = 'grass';
     curHookId = null;
     selected = [];
+    // 保存默认数据到 localStorage
+    saveData();
+    saveYT();
     alert('数据已重置，页面将刷新');
     location.reload();
   } catch(e) {
     alert('重置失败: ' + e.message);
+    console.error(e);
   }
 }
 
